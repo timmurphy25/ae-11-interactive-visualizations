@@ -1,0 +1,79 @@
+---
+title: Interactive Visualizations
+author: Tim Murphy
+format: html
+editor: visual
+---
+
+```{r read_librarys}
+  #|message = false
+  #|echo = false
+  library(plotly)
+  library(ggiraph)
+  library(tidyverse)
+  library(tidycensus)
+  library(sf)
+  library(leaflet)
+  library(openintro)
+  library(patchwork)
+```
+
+```{r define_plots}
+  df_hist<-
+duke_forest |>
+  mutate(garage = if_else(str_detect(parking, "Garage"), "Garage", "No garage")) |>
+  ggplot(aes(x = price, fill = garage)) +
+  geom_histogram() +
+  facet_wrap(~garage, ncol = 1) +
+  labs(
+    x = "Price in $",
+    y = "",
+    title = "Histogram of Price of Homes by Garage or not",
+    fill = "Garage or not"
+  )
+df_scatter<-
+  ggplot(
+  duke_forest,
+  aes(x = area, y = price, color = year_built)) +
+  geom_point(size = 3) +
+  geom_smooth(se = FALSE) +
+  labs(
+    x = "Area of Home",
+    y = "Price of Home",
+    title = "Relationship between Price and Area by Year Built",
+    color = "Year Built"
+  )
+df_hist | df_scatter # The | puts them next to each other
+```
+```{r make_interactive_hist}
+  df_hist_ggint<-duke_forest |>
+  mutate(garage = if_else(str_detect(parking, "Garage"), "Garage", "No garage")) |>
+  ggplot(aes(x = price, fill = garage, tooltip = paste0("Number of Houses\n",after_stat(count)))) +
+  geom_histogram_interactive()+
+  facet_wrap(~garage, ncol = 1) +
+  labs(
+    x = "Price in $",
+    y = "",
+    title = "Histogram of Price of Homes by Garage or not",
+    fill = "Garage or not"
+  )
+girafe(ggobj= df_hist_ggint)
+```
+```{r make_interactive_scatter}
+df_scatter_g<-
+  ggplot(
+  duke_forest,
+  aes(x = area, y = price, color = year_built)) +
+  geom_point_interactive(aes( tooltip =paste0("Number of beds: ",bed)),size = 3) +
+  geom_smooth(se = FALSE) +
+  labs(
+    x = "Area of Home",
+    y = "Price of Home",
+    title = "Relationship between Price and Area by Year Built",
+    color = "Year Built"
+  )
+girafe(ggobj = df_scatter_g)
+```
+```{r hist_plotly}
+  ggplotly(df_hist)
+```
