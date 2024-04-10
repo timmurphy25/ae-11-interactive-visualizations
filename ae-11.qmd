@@ -45,6 +45,7 @@ df_scatter<-
   )
 df_hist | df_scatter # The | puts them next to each other
 ```
+
 ```{r make_interactive_hist}
   df_hist_ggint<-duke_forest |>
   mutate(garage = if_else(str_detect(parking, "Garage"), "Garage", "No garage")) |>
@@ -59,6 +60,7 @@ df_hist | df_scatter # The | puts them next to each other
   )
 girafe(ggobj= df_hist_ggint)
 ```
+
 ```{r make_interactive_scatter}
 df_scatter_g<-
   ggplot(
@@ -74,6 +76,72 @@ df_scatter_g<-
   )
 girafe(ggobj = df_scatter_g)
 ```
+
 ```{r hist_plotly}
   ggplotly(df_hist)
+```
+
+```{r scatter_plotly}
+  ggplotly(df_scatter,tooltip = c(c("x","ft sq"),"y","color"))
+```
+```{r }
+#|title = census_data
+#|eval= false
+census_api_key("3f126811170fc7221483fa1a29cb5c6ca8fd8823", install = TRUE, overwrite = T)
+
+```
+```{r mapping}
+d10 <- load_variables(2010, "sf1", cache = TRUE)
+head(d10)
+ia <- get_decennial(geography = "county", 
+        year = 2010,
+        variables = c(t_houseunits = "H001001",t_rental = "H004004"), 
+        state = "IA",
+        output = "wide",
+        geometry = T,
+        cache_table = T)
+plot(ia)
+ia_ggplot_map <- 
+  ia |> 
+  ggplot() + 
+    geom_sf() +
+    theme_void()
+ia_ggplot_map3 <- 
+  ia |> 
+    mutate(centroid = st_coordinates(st_centroid(geometry))) |>
+    ggplot() + 
+geom_sf(color = "yellow") +
+  geom_point(aes(x=centroid[,1],y=centroid[,2],
+                     size=t_rental))+
+          labs(title = "Total Housing Units by County",
+               subtitle = "2010 US Census")  + 
+          theme_void()+
+    scale_size_continuous(range = c(1, 5)) 
+plot(ia_ggplot_map3)
+```
+
+```{r leaflet}
+ia_wgs84 <- ia |> st_transform(crs = 4326) |> 
+  mutate(centroid = st_centroid(geometry))
+
+ia_leaf <-
+  ia_wgs84  |>
+  leaflet() %>%
+  addTiles()%>%
+  addPolygons(color = "gray", 
+              weight = 1,
+              smoothFactor = 0.5,
+              opacity = 1.0,
+              fillOpacity = 0.5,
+              highlightOptions = 
+                highlightOptions(color = "white",
+                                  weight = 2,
+                                  bringToFront = TRUE))%>%
+  leaflet::addCircleMarkers(lat = ~st_coordinates(centroid)[,"Y"],
+                      lng = ~st_coordinates(centroid)[,"X"],
+                      radius = ~t_houseunits/50000,
+                      popup = ~NAME,
+                      fillOpacity = 1,
+                      opacity = 1)
+ia_leaf
 ```
